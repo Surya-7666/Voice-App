@@ -72,14 +72,14 @@ function App() {
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 text-black text-base sm:text-lg font-semibold shadow-md hover:scale-105 transform transition"
             onClick={() => invite(ZegoUIKitPrebuilt.InvitationTypeVoiceCall)}
           >
-            🎤 Start Voice Call
+             Start Voice Call
           </button>
 
           <button
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-red-500 text-white text-base sm:text-lg font-semibold shadow-md hover:scale-105 transform transition"
             onClick={() => invite(ZegoUIKitPrebuilt.InvitationTypeVideoCall)}
           >
-            🎥 Start Video Call
+             Start Video Call
           </button>
         </div>
       </div>
