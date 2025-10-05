@@ -12,13 +12,14 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recentCalls, setRecentCalls] = useState([]);
-
-  //  Generate stylish username and ID
-  const adjectives = ["Swift", "Chill", "Loud", "Zen", "Mighty", "Bright"];
-  const animals = ["Tiger", "Eagle", "Wolf", "Panther", "Falcon", "Fox"];
-  const randomName = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}`;
-  const userID = "CS" + Math.floor(1000 + Math.random() * 9000);
-  const userName = `${randomName}_${userID}`;
+  const [userInfo] = useState(() => {
+    // Persistent random user ID and Name
+    const adjectives = ["Swift", "Chill", "Loud", "Zen", "Mighty", "Bright"];
+    const animals = ["Tiger", "Eagle", "Wolf", "Panther", "Falcon", "Fox"];
+    const name = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}`;
+    const id = "VC" + Math.floor(1000 + Math.random() * 9000);
+    return { userID: id, userName: `${name}_${id}` };
+  });
 
   const appID = 111339110;
   const serverSecret = "effd02efd3c90d6eca9dcdbf1bf1e3b4";
@@ -27,31 +28,29 @@ function App() {
     appID,
     serverSecret,
     null,
-    userID,
-    userName
+    userInfo.userID,
+    userInfo.userName
   );
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
+    const timer = setTimeout(() => setLoading(false), 1500); // simulate init
     const zp = ZegoUIKitPrebuilt.create(TOKEN);
     zpRef.current = zp;
     zp.addPlugins({ ZIM });
     return () => clearTimeout(timer);
   }, [TOKEN]);
 
-  //  Copy to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success(`Copied: ${text}`);
   };
 
-  //  Share ID via Web Share API
   const shareID = () => {
     if (navigator.share) {
       navigator
         .share({
-          title: "My CallSphere ID",
-          text: `Hey! Connect with me on CallSphere. My ID: ${userID}`,
+          title: "My Vibe Call ID",
+          text: `Hey! Connect with me on Vibe Call. My ID: ${userInfo.userID}`,
         })
         .catch(() => toast.error("Share cancelled"));
     } else {
@@ -59,7 +58,6 @@ function App() {
     }
   };
 
-  //  Call logic
   const invite = (type) => {
     setCallType(type);
     setShowPopup(true);
@@ -70,40 +68,37 @@ function App() {
       toast.error("Please fill both fields!");
       return;
     }
-
     setIsCalling(true);
-    zpRef.current
-      .sendCallInvitation({
-        callees: [callee],
-        callType,
-        timeout: 60,
-      })
-      .then(() => {
-        toast.success("Invitation Sent!");
-        const newCall = {
-          id: Date.now(),
-          name: callee.userName,
-          type: callType === 0 ? "Voice" : "Video",
-        };
-        setRecentCalls((prev) => [newCall, ...prev.slice(0, 2)]);
-        setIsCalling(false);
-        setShowPopup(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error("Failed to send invitation");
-        setIsCalling(false);
-      });
+
+    const roomID = `${userInfo.userID}-${callee.userID}`; // unique room for caller & callee
+    const zp = ZegoUIKitPrebuilt.create(TOKEN);
+
+    // Join the call room
+    zp.joinRoom({
+      container: document.getElementById("call-container"),
+      scenario: callType === 0 ? "voice_call" : "video_call",
+      roomID: roomID,
+      showMyCameraToggleButton: true,
+      showMyMicrophoneToggleButton: true,
+    });
+
+    const newCall = {
+      id: Date.now(),
+      name: callee.userName,
+      type: callType === 0 ? "Voice" : "Video",
+    };
+    setRecentCalls((prev) => [newCall, ...prev.slice(0, 2)]);
+    setIsCalling(false);
+    setShowPopup(false);
   };
 
-  //   dark mode
   const toggleTheme = () => setDarkMode(!darkMode);
 
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-sky-100 to-indigo-100 text-gray-700">
         <div className="animate-spin h-12 w-12 border-4 border-sky-400 border-t-transparent rounded-full mb-4"></div>
-        <p className="text-lg font-semibold">Loading CallSphere...</p>
+        <p className="text-lg font-semibold">Loading Vibe Call...</p>
       </div>
     );
 
@@ -116,8 +111,6 @@ function App() {
       }`}
     >
       <Toaster position="bottom-center" />
-
-      {/*  Dark mode toggle */}
       <button
         onClick={toggleTheme}
         className="absolute top-6 right-6 text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl shadow hover:scale-105 transition"
@@ -125,36 +118,13 @@ function App() {
         {darkMode ? "☀️ Light" : "🌙 Dark"}
       </button>
 
-      {/*  Floating Background Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(12)].map((_, i) => (
-          <div
-            key={i}
-            className={`absolute ${
-              darkMode ? "bg-indigo-400" : "bg-sky-300"
-            } rounded-full opacity-20`}
-            style={{
-              width: `${Math.random() * 20 + 10}px`,
-              height: `${Math.random() * 20 + 10}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animation: `float ${3 + Math.random() * 3}s ease-in-out infinite`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/*  Project Title */}
-      <h1
-        className={`text-4xl sm:text-5xl md:text-6xl font-extrabold mb-8 text-center animate-fadeIn bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg`}
-      >
+      <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-2 text-center bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
         Vibe Call
       </h1>
       <p className="text-sm sm:text-base mb-6 opacity-70 text-center">
-        Connect Instantly — Voice & Video Calls, Anytime, Anywhere 
+        Connect Instantly — Voice & Video Calls, Anytime, Anywhere
       </p>
 
-      {/*  Main Card */}
       <div
         className={`relative z-10 w-full max-w-md p-8 ${
           darkMode ? "bg-white/10" : "bg-white/60"
@@ -162,18 +132,17 @@ function App() {
           darkMode ? "border-gray-700" : "border-gray-200"
         } flex flex-col items-center gap-6`}
       >
-        {/* User Info */}
         <div className="text-center">
-          <h2 className="text-xl font-bold">Welcome, Caller </h2>
+          <h2 className="text-xl font-bold">Welcome, Caller</h2>
           <p className="text-sm opacity-70">You are connected as</p>
           <div className="mt-2 space-y-1">
             <h3 className="font-semibold">
-              <span className="text-sky-500">Name:</span> {userName}
+              <span className="text-sky-500">Name:</span> {userInfo.userName}
             </h3>
             <h3 className="font-semibold flex items-center justify-center gap-2">
-              <span className="text-sky-500">UserID:</span> {userID}
+              <span className="text-sky-500">UserID:</span> {userInfo.userID}
               <button
-                onClick={() => copyToClipboard(userID)}
+                onClick={() => copyToClipboard(userInfo.userID)}
                 className="bg-sky-100 hover:bg-sky-200 text-sky-700 px-2 py-1 rounded-lg text-xs font-semibold"
               >
                 Copy
@@ -188,29 +157,25 @@ function App() {
           </div>
         </div>
 
-        {/* Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 w-full">
           <button
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-sky-400 to-sky-600 text-white font-semibold shadow hover:scale-105 hover:shadow-lg transition"
             onClick={() => invite(ZegoUIKitPrebuilt.InvitationTypeVoiceCall)}
           >
-             Voice Call
+            🎤 Voice Call
           </button>
 
           <button
             className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-400 to-indigo-500 text-white font-semibold shadow hover:scale-105 hover:shadow-lg transition"
             onClick={() => invite(ZegoUIKitPrebuilt.InvitationTypeVideoCall)}
           >
-             Video Call
+            🎥 Video Call
           </button>
         </div>
 
-        {/*  Recent Calls */}
         {recentCalls.length > 0 && (
           <div className="w-full mt-4 border-t pt-3">
-            <h4 className="text-sm font-semibold opacity-70 mb-2">
-              Recent Calls
-            </h4>
+            <h4 className="text-sm font-semibold opacity-70 mb-2">Recent Calls</h4>
             <ul className="text-sm space-y-1">
               {recentCalls.map((call) => (
                 <li
@@ -234,12 +199,12 @@ function App() {
         )}
       </div>
 
-      {/* Footer */}
+      <div id="call-container" className="w-full max-w-4xl mt-6 h-[400px] rounded-xl overflow-hidden"></div>
+
       <p className="text-xs opacity-70 mt-6 z-10">
         Made with 💙 by <span className="font-semibold">Surya</span>
       </p>
 
-      {/* Popup */}
       {showPopup && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center px-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg relative">
